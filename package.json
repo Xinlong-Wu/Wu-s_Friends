@@ -1,0 +1,21 @@
+{
+  "name": "ai-chat-app",
+  "version": "1.0.0",
+  "description": "A chat application that interacts with Alibaba Cloud's intelligent agent orchestration API",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace frontend dev\" \"yarn workspace backend dev\"",
+    "build": "yarn workspaces foreach -v run build",
+    "start": "concurrently \"yarn workspace frontend start\" \"yarn workspace backend start\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "packageManager": "yarn@4.9.2"
+}

@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .message-user {
+    @apply bg-blue-500 text-white rounded-l-2xl rounded-tr-2xl px-4 py-2 max-w-[80%] self-end;
+  }
+  
+  .message-ai {
+    @apply bg-gray-200 text-gray-800 rounded-r-2xl rounded-tl-2xl px-4 py-2 max-w-[80%] self-start;
+  }
+  
+  .session-item {
+    @apply flex items-center justify-between p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200;
+  }
+  
+  .session-item.active {
+    @apply bg-blue-50 border-l-4 border-l-blue-500;
+  }
+  
+  .icon-button {
+    @apply p-2 rounded-full hover:bg-gray-200 transition-colors;
+  }
+  
+  .file-preview {
+    @apply flex items-center p-2 bg-gray-100 rounded-lg mt-2;
+  }
+}
