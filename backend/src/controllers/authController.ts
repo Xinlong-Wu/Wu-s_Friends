@@ -1,23 +1,23 @@
-// In-memory storage for users
-// In a real application, you would use a database
-let users: any[] = [
-  {
-    id: '1',
-    email: 'user@example.com',
-    name: 'Test User',
-    password: 'password123' // In a real app, this would be hashed
-  }
-];
-
-// Current user session (in a real app, you would use JWT or sessions)
-let currentUser: any = null;
-
 // Import JWT library
 import jwt from 'jsonwebtoken';
 
 // Load environment variables
 import dotenv from 'dotenv';
 dotenv.config();
+
+// In-memory storage for users
+// In a real application, you would use a database
+let users: any[] = [
+  {
+    id: '1',
+    email: process.env.TEST_USER_EMAIL,
+    name: process.env.TEST_USER_NAME || "小乌",
+    password: process.env.TEST_USER_PASSWORD
+  }
+];
+
+// Current user session (in a real app, you would use JWT or sessions)
+let currentUser: any = null;
 
 // User login
 export const loginUser = (email: string, password: string) => {
