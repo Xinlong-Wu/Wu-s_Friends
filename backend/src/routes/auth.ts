@@ -24,19 +24,19 @@ router.post('/login', loginRateLimiter, (req, res) => {
 });
 
 // User registration
-router.post('/register', (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-    const result = registerUser(email, password, name);
-    if (result) {
-      res.status(201).json(result);
-    } else {
-      res.status(400).json({ error: 'Registration failed' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
+// router.post('/register', (req, res) => {
+//   try {
+//     const { email, password, name } = req.body;
+//     const result = registerUser(email, password, name);
+//     if (result) {
+//       res.status(201).json(result);
+//     } else {
+//       res.status(400).json({ error: 'Registration failed' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ error: 'Registration failed' });
+//   }
+// });
 
 // Get current user
 router.get('/me', (req, res) => {

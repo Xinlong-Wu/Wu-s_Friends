@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
           </div>
         </form>
         
-        <div className="text-sm text-center">
+        {/* <div className="text-sm text-center">
           <button
             onClick={() => setIsRegistering(!isRegistering)}
             className="font-medium text-blue-600 hover:text-blue-500"
@@ -138,7 +138,7 @@ const LoginPage: React.FC = () => {
               ? 'Already have an account? Sign in' 
               : "Don't have an account? Register"}
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
