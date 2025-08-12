@@ -5,7 +5,7 @@ const ALIYUN_AI_API_URL = process.env.ALIYUN_AI_API_URL || 'https://dashscope.al
 const ALIYUN_API_KEY = process.env.ALIYUN_API_KEY || 'your-api-key-here';
 
 // Send a message to Aliyun AI and get response
-export const sendMessageToAliyunAI = async (messages: any[], onChunk: (chunk: string) => void) => {
+export const sendMessageToAliyunAI = async (messages: any[], onChunk: (chunk: string) => void, sessionId: string) => {
   try {
     // Format messages for Aliyun API
     const formattedMessages = messages.map(msg => ({

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Message } from '../types'; // 导入 Message 类型
 
 const API_BASE_URL = '/api';
 
@@ -74,6 +75,12 @@ export const chatAPI = {
       `/chat/${sessionId}/message`,
       message
     );
+    return response.data;
+  },
+
+  // Get messages for a specific session
+  getSessionMessages: async (sessionId: string) => {
+    const response = await api.get<Message[]>(`/chat/${sessionId}/messages`);
     return response.data;
   },
 

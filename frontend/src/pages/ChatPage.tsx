@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useChatStore from '../store/chatStore';
 import { chatAPI, fileAPI } from '../services/api';
-import { Message, FileInfo, Session } from '../types';
+import { Message, FileInfo } from '../types';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatHeader from '../components/ChatHeader';
 import MessageList from '../components/MessageList';
@@ -12,12 +12,13 @@ const ChatPage: React.FC = () => {
   const {
     sessions,
     currentSessionId,
-    messages,
     isStreaming,
     addMessage,
     setCurrentSession,
     addSession,
     setIsStreaming,
+    setMessages,
+    getSessionMessages,
   } = useChatStore();
   const [searchParams] = useSearchParams();
 
@@ -25,6 +26,7 @@ const ChatPage: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const didFetchRef = useRef(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const createNewSession = async () => {
     try {
@@ -76,10 +78,30 @@ const ChatPage: React.FC = () => {
     loadOrCreateSessions();
   }, []);
 
+  // Load messages for current session when it changes
+  useEffect(() => {
+    const loadSessionMessages = async () => {
+      if (!currentSessionId || isLoadingSession) return;
+      
+      setIsLoadingSession(true);
+      try {
+        // Get messages for the current session
+        const messages = await chatAPI.getSessionMessages(currentSessionId);
+        setMessages(currentSessionId, messages);
+      } catch (error) {
+        console.error('Failed to load session messages:', error);
+      } finally {
+        setIsLoadingSession(false);
+      }
+    };
+
+    loadSessionMessages();
+  }, [currentSessionId]);
+
   // Scroll to bottom of messages
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [currentSessionId]); // 当切换会话时也滚动到底部
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -118,7 +140,7 @@ const ChatPage: React.FC = () => {
     setIsStreaming(true);
 
     try {
-      // Send message to backend (non-blocking)
+      // Send only the latest prompt to backend (not all messages)
       await chatAPI.sendMessage(currentSessionId, {
         role: 'user',
         content: inputValue,
@@ -216,8 +238,8 @@ const ChatPage: React.FC = () => {
 
     try {
       await chatAPI.clearSession(currentSessionId);
-      // Clear messages in store
-      useChatStore.getState().clearMessages();
+      // Clear messages in store for current session
+      useChatStore.getState().clearMessages(currentSessionId);
     } catch (error) {
       console.error('Failed to clear context:', error);
     }
@@ -234,6 +256,9 @@ const ChatPage: React.FC = () => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // 获取当前会话的消息列表
+  const currentSessionMessages = currentSessionId ? getSessionMessages(currentSessionId) : [];
+
   return (
     <div className="flex h-full">
       <ChatSidebar onCreateSession={createNewSession} />
@@ -242,7 +267,7 @@ const ChatPage: React.FC = () => {
         <ChatHeader onClearContext={handleClearContext} />
         
         <div className="flex-1 overflow-y-auto p-4">
-          <MessageList messages={messages} />
+          <MessageList messages={currentSessionMessages} />
           <div ref={messagesEndRef} />
         </div>
         

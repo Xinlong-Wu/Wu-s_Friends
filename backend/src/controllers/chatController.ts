@@ -32,6 +32,22 @@ export const getSessions = () => {
   return sessions;
 };
 
+// Get messages for a specific session
+export const getSessionMessages = (sessionId: string) => {
+  const sessionMessages = messages
+    .filter(m => m.sessionId === sessionId)
+    .map(m => ({
+      id: m.id,
+      sessionId: m.sessionId,
+      content: m.content,
+      role: m.role,
+      timestamp: m.timestamp,
+      files: m.files || []
+    }));
+  
+  return sessionMessages;
+};
+
 // Delete a chat session
 export const deleteSession = (id: string) => {
   const sessionIndex = sessions.findIndex(s => s.id === id);
@@ -100,9 +116,31 @@ export const sendMessageToAI = async (sessionId: string, message: any) => {
   // Send to AI service with streaming
   try {
     await sendMessageToAliyunAI(sessionMessages, (chunk) => {
+      // 按 \n 解析，遇到data:开头的行，将全部后续内容作为data
+      let data = '';
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+        data = line.slice(5).trim();
+        }
+      }
+
+      let content = JSON.parse(data);
+      if (content.output.finish_reason === 'stop') {
+        const aiMessage = {
+            id: content.request_id,
+            sessionId,
+            content: content.output.text,
+            role: 'assistant',
+            timestamp: new Date(),
+            files: []
+          };
+        messages.push(aiMessage);
+      }
+
       // Emit chunk for SSE streaming
-      sseEventEmitter.emit(`stream-${sessionId}`, chunk);
-    });
+      sseEventEmitter.emit(`stream-${sessionId}`, data);
+    }, sessionId);
   } catch (error) {
     console.error('Error in AI processing:', error);
     // Emit error event
@@ -133,18 +171,8 @@ export const streamAIResponse = async (sessionId: string, sseRes: Response) => {
   });
   
   // Listen for streaming data
-  const streamListener = (chunk: string) => {
-    // 按 \n 解析，遇到data:开头的行，将全部后续内容作为data
-    let data = '';
-    const lines = chunk.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('data:')) {
-      data = line.slice(5).trim();
-      }
-    }
-    if (!data) return;
-  
-    sseRes.write(`data: ${JSON.stringify(JSON.parse(data))}\n\n`);
+  const streamListener = (data: string) => {
+    sseRes.write(`data: ${ data }\n\n`);
   };
   
   // Listen for end event

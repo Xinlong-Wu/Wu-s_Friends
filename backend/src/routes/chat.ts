@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages, updateSessionTitle } from '../controllers/chatController';
+import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages, updateSessionTitle, getSessionMessages } from '../controllers/chatController';
 
 const router = express.Router();
 
@@ -21,6 +20,17 @@ router.get('/sessions', (req, res) => {
     res.json(sessions);
   } catch (error) {
     res.status(500).json({ error: 'Failed to retrieve sessions' });
+  }
+});
+
+// Get messages for a specific session
+router.get('/:sessionId/messages', (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const messages = getSessionMessages(sessionId);
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve session messages' });
   }
 });
 
