@@ -5,10 +5,10 @@ import { loginRateLimiter, recordFailedLogin, recordSuccessfulLogin } from '../m
 const router = express.Router();
 
 // User login
-router.post('/login', loginRateLimiter, (req, res) => {
+router.post('/login', loginRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = loginUser(email, password);
+    const result = await loginUser(email, password);
     if (result) {
       // Record successful login
       recordSuccessfulLogin(req);
@@ -24,19 +24,19 @@ router.post('/login', loginRateLimiter, (req, res) => {
 });
 
 // User registration
-// router.post('/register', (req, res) => {
-//   try {
-//     const { email, password, name } = req.body;
-//     const result = registerUser(email, password, name);
-//     if (result) {
-//       res.status(201).json(result);
-//     } else {
-//       res.status(400).json({ error: 'Registration failed' });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ error: 'Registration failed' });
-//   }
-// });
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    const result = await registerUser(email, password, name);
+    if (result) {
+      res.status(201).json(result);
+    } else {
+      res.status(400).json({ error: 'Registration failed' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
 
 // Get current user
 router.get('/me', (req, res) => {
