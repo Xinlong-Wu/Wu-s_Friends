@@ -12,12 +12,12 @@ docker build -t ai-chat-app .
 ### 运行容器
 ```bash
 # 使用本地 .env 文件
-docker run -p 8000:8000 -p 3000:3000 -v $(pwd)/.env:/app/.env ai-chat-app
+docker run -p 8000:8000 -v $(pwd)/.env:/app/.env ai-chat-app
 ```
 
 或者如果您想使用不同的环境变量文件：
 ```bash
-docker run -p 8000:8000 -p 3000:3000 -v /path/to/your/env.file:/app/.env ai-chat-app
+docker run -p 8000:8000 -v /path/to/your/env.file:/app/.env ai-chat-app
 ```
 
 ## Dockerfile 特性
