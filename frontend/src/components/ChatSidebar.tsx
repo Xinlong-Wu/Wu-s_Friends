@@ -1,6 +1,6 @@
 import React from 'react';
-import { Session } from '../types';
 import useChatStore from '../store/chatStore';
+import { chatAPI } from '../services/api';
 
 interface ChatSidebarProps {
   onCreateSession: () => void;
@@ -11,7 +11,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
 
   const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    removeSession(sessionId);
+    chatAPI.deleteSession(sessionId)
+      .then(() => {
+        removeSession(sessionId);
+      })
   };
 
   return (

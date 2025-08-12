@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Message, Session, ChatState, User } from '../types';
+import { Message, Session, ChatState } from '../types';
 
 interface ChatActions {
   setCurrentSession: (sessionId: string) => void;
@@ -9,18 +9,16 @@ interface ChatActions {
   addSession: (session: Session) => void;
   removeSession: (sessionId: string) => void;
   updateSessionTitle: (sessionId: string, title: string) => void;
-  setUser: (user: User | null) => void;
   setIsStreaming: (isStreaming: boolean) => void;
   setIsConnected: (isConnected: boolean) => void;
 }
 
-const useChatStore = create<ChatState & ChatActions>((set, get) => ({
+const useChatStore = create<ChatState & ChatActions>((set) => ({
   sessions: [],
   currentSessionId: null,
   messages: [],
   isStreaming: false,
   isConnected: false,
-  user: null,
 
   setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
   
@@ -58,6 +56,8 @@ const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       if (state.currentSessionId === sessionId) {
         newCurrentSessionId = newSessions.length > 0 ? newSessions[0].id : null;
       }
+
+      
       
       return {
         sessions: newSessions,
@@ -72,8 +72,6 @@ const useChatStore = create<ChatState & ChatActions>((set, get) => ({
         session.id === sessionId ? { ...session, title } : session
       ),
     })),
-  
-  setUser: (user) => set({ user }),
   
   setIsStreaming: (isStreaming) => set({ isStreaming }),
   

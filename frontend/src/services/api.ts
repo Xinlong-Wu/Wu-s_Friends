@@ -68,13 +68,50 @@ export interface UploadResponse {
 
 // Chat API
 export const chatAPI = {
-  // Send a message and get a streaming response
+  // Send a message (non-blocking)
   sendMessage: async (sessionId: string, message: ChatMessage) => {
-    const response = await api.post<ChatResponse>(
+    const response = await api.post<{ message: string }>(
       `/chat/${sessionId}/message`,
       message
     );
     return response.data;
+  },
+
+  // Stream AI responses using Server-Sent Events
+  streamMessages: (sessionId: string, onMessage: (data: any) => void, onError?: (error: any) => void) => {
+    const eventSource = new EventSource(`${API_BASE_URL}/chat/${sessionId}/message/stream`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          console.error('Stream error:', data.error);
+          if (onError) {
+            onError(data);
+          }
+          return;
+        }
+
+        onMessage(data);
+
+        if (data.end) {
+          onMessage({ end: true });
+          eventSource.close();
+        }
+      } catch (error) {
+        console.error('Error parsing SSE message:', error);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('SSE Error:', error);
+      if (onError) {
+        onError(error);
+      }
+      eventSource.close();
+    };
+    
+    return eventSource;
   },
 
   // Create a new session

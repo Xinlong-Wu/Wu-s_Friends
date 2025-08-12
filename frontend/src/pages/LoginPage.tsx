@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import useChatStore from '../store/chatStore';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser } = useChatStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,10 +16,9 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      const { token, user } = await authAPI.login(email, password);
+      const { token } = await authAPI.login(email, password);
       // Store token in localStorage or secure storage
       localStorage.setItem('authToken', token);
-      setUser(user);
       navigate('/');
     } catch (err) {
       setError('Invalid email or password');
@@ -34,10 +31,9 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      const { token, user } = await authAPI.register(email, password, name);
+      const { token } = await authAPI.register(email, password, name);
       // Store token in localStorage or secure storage
       localStorage.setItem('authToken', token);
-      setUser(user);
       navigate('/');
     } catch (err) {
       setError('Registration failed');

@@ -59,7 +59,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
                 components={{
-                  code({ node, inline, className, children, ...props }) {
+                  code({ inline, className, children }) {
                     return !inline ? (
                       <pre className={className}>
                         <code>{children}</code>

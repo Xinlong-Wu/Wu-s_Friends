@@ -32,13 +32,13 @@ const upload = multer({
     ) {
       cb(null, true);
     } else {
-      cb(new Error('Unsupported file type'));
+      cb(new Error('Unsupported file type') as any, false);
     }
   }
 });
 
 // Upload a file
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', upload.single('file'), (req: any, res: any) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -46,10 +46,10 @@ router.post('/', upload.single('file'), (req, res) => {
 
     // Process the uploaded file
     const result = uploadFile(req.file);
-    res.status(201).json(result);
+    return res.status(201).json(result);
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'File upload failed' });
+    return res.status(500).json({ error: 'File upload failed' });
   }
 });
 

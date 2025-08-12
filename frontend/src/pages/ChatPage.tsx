@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import useChatStore from '../store/chatStore';
 import { chatAPI, fileAPI } from '../services/api';
 import { Message, FileInfo } from '../types';
@@ -9,14 +8,12 @@ import MessageList from '../components/MessageList';
 import MessageInput from '../components/MessageInput';
 
 const ChatPage: React.FC = () => {
-  const navigate = useNavigate();
   const {
     sessions,
     currentSessionId,
     messages,
     isStreaming,
     addMessage,
-    updateMessage,
     setCurrentSession,
     addSession,
     setIsStreaming,
@@ -24,7 +21,6 @@ const ChatPage: React.FC = () => {
 
   const [inputValue, setInputValue] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Create a new session on mount if none exists
@@ -64,7 +60,6 @@ const ChatPage: React.FC = () => {
       try {
         const uploadPromises = selectedFiles.map(file => fileAPI.uploadFile(file));
         uploadedFileInfos = await Promise.all(uploadPromises);
-        setUploadedFiles(prev => [...prev, ...uploadedFileInfos]);
       } catch (error) {
         console.error('Failed to upload files:', error);
         // Continue sending message even if file upload fails
@@ -87,24 +82,84 @@ const ChatPage: React.FC = () => {
     setIsStreaming(true);
 
     try {
-      // For streaming, we would use EventSource or WebSocket
-      // This is a simplified version that waits for the full response
-      const response = await chatAPI.sendMessage(currentSessionId, {
+      // Send message to backend (non-blocking)
+      await chatAPI.sendMessage(currentSessionId, {
         role: 'user',
         content: inputValue,
         files: uploadedFileInfos,
       });
 
-      // Add AI response to UI
+      // Create a temporary AI message with empty content
+      const aiMessageId = Date.now().toString();
       const aiMessage: Message = {
-        id: response.id,
+        id: aiMessageId,
         sessionId: currentSessionId,
-        content: response.content,
+        content: '',
         role: 'assistant',
-        timestamp: response.timestamp,
+        timestamp: new Date(),
       };
 
       addMessage(aiMessage);
+
+      // Connect to SSE stream for AI response
+      let eventSource: EventSource | null = null;
+      let accumulatedContent = '';
+
+      const handleStreamMessage = (data: any) => {
+        if (data.error) {
+          // Handle error from stream
+          // Update AI message with error content
+          useChatStore.getState().updateMessage(aiMessageId, 'Sorry, I encountered an error processing your request.');
+          if (eventSource) {
+            eventSource.close();
+          }
+          setIsStreaming(false);
+          return;
+        }
+
+        let output = data.output || {};
+        if (output.text) {
+          // Append new text to accumulated content
+          accumulatedContent = output.text;
+          useChatStore.getState().updateMessage(aiMessageId, accumulatedContent);
+        }
+        
+        if (data.end) {
+          setIsStreaming(false);
+          return;
+        }
+      };
+
+      const handleStreamError = (error: any) => {
+        console.error('Stream error:', error);
+        // Update AI message with error content
+        useChatStore.getState().updateMessage(aiMessageId, 'Sorry, I encountered an error processing your request.');
+        setIsStreaming(false);
+      };
+
+      // Start streaming
+      eventSource = chatAPI.streamMessages(
+        currentSessionId,
+        handleStreamMessage,
+        handleStreamError
+      );
+
+      // Clean up when stream ends
+      const cleanup = () => {
+        if (eventSource) {
+          eventSource.close();
+        }
+        setIsStreaming(false);
+      };
+
+      // Set a timeout to clean up if stream doesn't end properly
+      const timeout = setTimeout(cleanup, 60000); // 60 seconds timeout
+
+      // Listen for stream end
+      eventSource.addEventListener('end', () => {
+        clearTimeout(timeout);
+        cleanup();
+      });
     } catch (error) {
       console.error('Failed to send message:', error);
       // Add error message to UI
@@ -116,7 +171,6 @@ const ChatPage: React.FC = () => {
         timestamp: new Date(),
       };
       addMessage(errorMessage);
-    } finally {
       setIsStreaming(false);
     }
   };

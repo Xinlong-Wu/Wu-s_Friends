@@ -1,6 +1,6 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { sendMessageToAI, createSession, getSessions, deleteSession, clearSessionMessages } from '../controllers/chatController';
+import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages } from '../controllers/chatController';
 
 const router = express.Router();
 
@@ -39,19 +39,43 @@ router.delete('/sessions/:id', (req, res) => {
   }
 });
 
-// Send a message to AI and get response
-router.post('/:sessionId/message', async (req, res) => {
+// Send a message to AI (non-blocking)
+router.post('/:sessionId/message', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const { role, content, files } = req.body;
     
-    // For streaming response, we would use Server-Sent Events
-    // Here's a simplified version that waits for the full response
-    const response = await sendMessageToAI(sessionId, { role, content, files });
-    res.json(response);
+    // Trigger AI processing in the background
+    sendMessageToAI(sessionId, { role, content, files })
+    
+    // Immediately return 200 OK
+    res.status(200).json({ message: 'Message received and processing started' });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Stream AI responses using Server-Sent Events
+router.get('/:sessionId/message/stream', async (req: Request, res: Response) => {
+  // 设置 SSE 响应头
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Allow CORS for SSE
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  try {
+    const { sessionId } = req.params;
+    
+    // Connect to the SSE stream for this session
+    // The actual streaming will be handled by the controller
+    await streamAIResponse(sessionId, res);
+  } catch (error) {
+    console.error('Error streaming message:', error);
+    res.status(500).json({ error: 'Failed to stream message' });
   }
 });
 

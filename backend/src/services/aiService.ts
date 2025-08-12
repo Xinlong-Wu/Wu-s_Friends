@@ -5,7 +5,7 @@ const ALIYUN_AI_API_URL = process.env.ALIYUN_AI_API_URL || 'https://dashscope.al
 const ALIYUN_API_KEY = process.env.ALIYUN_API_KEY || 'your-api-key-here';
 
 // Send a message to Aliyun AI and get response
-export const sendMessageToAliyunAI = async (messages: any[]) => {
+export const sendMessageToAliyunAI = async (messages: any[], onChunk: (chunk: string) => void) => {
   try {
     // Format messages for Aliyun API
     const formattedMessages = messages.map(msg => ({
@@ -19,9 +19,8 @@ export const sendMessageToAliyunAI = async (messages: any[]) => {
     const response = await axios.post(
       ALIYUN_AI_API_URL,
       {
-        model: 'qwen-max', // or another appropriate model
         input: {
-          messages: formattedMessages
+          prompt: formattedMessages,
         },
         parameters: {
           incremental_output: false // Set to true for streaming
@@ -32,13 +31,27 @@ export const sendMessageToAliyunAI = async (messages: any[]) => {
           'Authorization': `Bearer ${ALIYUN_API_KEY}`,
           'Content-Type': 'application/json',
           'X-DashScope-SSE': 'enable' // Enable streaming if needed
-        }
+        },
+        responseType: 'stream'
       }
     );
 
     // Extract the response content
     // The exact structure depends on the Aliyun API response format
-    return response.data.output.text || response.data.choices?.[0]?.message?.content || 'Sorry, I could not process that request.';
+    return new Promise((resolve, reject) => {
+      response.data.on('data', (chunk: Buffer) => {
+        const text = chunk.toString();
+        onChunk(text);
+      });
+
+      response.data.on('end', () => {
+        resolve('AI response completed');
+      });
+
+      response.data.on('error', (error: Error) => {
+        reject(error);
+      });
+    });
   } catch (error) {
     console.error('Error calling Aliyun AI API:', error);
     throw new Error('Failed to get response from AI service');
