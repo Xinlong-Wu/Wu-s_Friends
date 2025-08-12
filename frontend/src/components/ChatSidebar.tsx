@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import useChatStore from '../store/chatStore';
 import { chatAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
 interface ChatSidebarProps {
   onCreateSession: () => void;
@@ -10,6 +11,22 @@ interface ChatSidebarProps {
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
   const { sessions, currentSessionId, setCurrentSession, removeSession } = useChatStore();
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Get current user info when component mounts
+    const fetchCurrentUser = async () => {
+      try {
+        const userData = await authAPI.getCurrentUser();
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
@@ -26,8 +43,28 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
     setCurrentSession(sessionId);
   };
 
+  const handleLogout = async () => {
+    try {
+      // Call logout API if needed
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage
+      localStorage.removeItem('authToken');
+      // Navigate to login page
+      navigate('/login');
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (userName: string = ''): string => {
+    if (!userName) return 'U';
+    return userName.charAt(0).toUpperCase();
+  };
+
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-4 border-b border-gray-200">
         <button
           onClick={onCreateSession}
@@ -65,16 +102,30 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
         ))}
       </div>
       
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center">
+      <div className="p-4 border-t border-gray-200 relative">
+        <div 
+          className="flex items-center cursor-pointer"
+          onClick={() => setShowDropdown(!showDropdown)}
+        >
           <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-            U
+            {user ? getUserInitials(user.name) : 'U'}
           </div>
           <div className="ml-3">
-            <div className="text-sm font-medium">User</div>
+            <div className="text-sm font-medium">{user ? user.name : 'User'}</div>
             <div className="text-xs text-gray-500">Free Plan</div>
           </div>
         </div>
+        
+        {showDropdown && (
+          <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+            <button
+              onClick={handleLogout}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
