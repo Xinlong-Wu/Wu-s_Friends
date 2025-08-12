@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages, updateSessionTitle, getSessionMessages } from '../controllers/chatController';
+import { authenticateToken } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
 // Create a new chat session
-router.post('/sessions', (req, res) => {
+router.post('/sessions', authenticateToken, (req, res) => {
   try {
     const session = createSession();
     res.status(201).json(session);
@@ -14,7 +15,7 @@ router.post('/sessions', (req, res) => {
 });
 
 // Get all chat sessions
-router.get('/sessions', (req, res) => {
+router.get('/sessions', authenticateToken, (req, res) => {
   try {
     const sessions = getSessions();
     res.json(sessions);
@@ -24,7 +25,7 @@ router.get('/sessions', (req, res) => {
 });
 
 // Get messages for a specific session
-router.get('/:sessionId/messages', (req, res) => {
+router.get('/:sessionId/messages', authenticateToken, (req, res) => {
   try {
     const { sessionId } = req.params;
     const messages = getSessionMessages(sessionId);
@@ -35,7 +36,7 @@ router.get('/:sessionId/messages', (req, res) => {
 });
 
 // Delete a chat session
-router.delete('/sessions/:id', (req, res) => {
+router.delete('/sessions/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
     const success = deleteSession(id);
@@ -50,7 +51,7 @@ router.delete('/sessions/:id', (req, res) => {
 });
 
 // Send a message to AI (non-blocking)
-router.post('/:sessionId/message', async (req: Request, res: Response) => {
+router.post('/:sessionId/message', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const { role, content, files } = req.body;
@@ -67,7 +68,7 @@ router.post('/:sessionId/message', async (req: Request, res: Response) => {
 });
 
 // Stream AI responses using Server-Sent Events
-router.get('/:sessionId/message/stream', async (req: Request, res: Response) => {
+router.get('/:sessionId/message/stream', authenticateToken, async (req: Request, res: Response) => {
   // 设置 SSE 响应头
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -90,7 +91,7 @@ router.get('/:sessionId/message/stream', async (req: Request, res: Response) => 
 });
 
 // Clear session messages
-router.delete('/:sessionId/messages', (req, res) => {
+router.delete('/:sessionId/messages', authenticateToken, (req, res) => {
   try {
     const { sessionId } = req.params;
     const success = clearSessionMessages(sessionId);
@@ -105,7 +106,7 @@ router.delete('/:sessionId/messages', (req, res) => {
 });
 
 // Update session title
-router.put('/sessions/:id', (req, res) => {
+router.put('/sessions/:id', authenticateToken, (req, res) => {
   try {
     const { id } = req.params;
     const { title } = req.body;
