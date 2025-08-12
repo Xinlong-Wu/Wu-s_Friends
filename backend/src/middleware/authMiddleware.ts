@@ -15,7 +15,12 @@ interface JwtPayload {
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   // Get the token from the Authorization header
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // If no token in header, check query parameters (for EventSource)
+  if (!token) {
+    token = req.query.token as string;
+  }
 
   if (!token) {
     return res.status(401).json({ 

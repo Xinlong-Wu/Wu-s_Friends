@@ -67,6 +67,15 @@ router.post('/:sessionId/message', authenticateToken, async (req: Request, res: 
   }
 });
 
+// Add CORS headers for preflight requests
+router.options('/:sessionId/message/stream', (req: Request, res: Response) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  res.status(204).send();
+});
+
 // Stream AI responses using Server-Sent Events
 router.get('/:sessionId/message/stream', authenticateToken, async (req: Request, res: Response) => {
   // 设置 SSE 响应头
@@ -76,7 +85,7 @@ router.get('/:sessionId/message/stream', authenticateToken, async (req: Request,
   
   // Allow CORS for SSE
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
   try {
     const { sessionId } = req.params;

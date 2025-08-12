@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Message } from '../types'; // 导入 Message 类型
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 const API_BASE_URL = '/api';
 
@@ -86,7 +87,13 @@ export const chatAPI = {
 
   // Stream AI responses using Server-Sent Events
   streamMessages: (sessionId: string, onMessage: (data: any) => void, onError?: (error: any) => void) => {
-    const eventSource = new EventSource(`${API_BASE_URL}/chat/${sessionId}/message/stream`);
+    const token = localStorage.getItem('authToken');
+    
+    const eventSource = new EventSourcePolyfill(`${API_BASE_URL}/chat/${sessionId}/message/stream`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     eventSource.onmessage = (event) => {
       try {
