@@ -1,6 +1,7 @@
 import React from 'react';
 import useChatStore from '../store/chatStore';
 import { chatAPI } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface ChatSidebarProps {
   onCreateSession: () => void;
@@ -8,6 +9,7 @@ interface ChatSidebarProps {
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
   const { sessions, currentSessionId, setCurrentSession, removeSession } = useChatStore();
+  const navigate = useNavigate();
 
   const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
@@ -15,6 +17,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
       .then(() => {
         removeSession(sessionId);
       })
+  };
+
+  const handleSessionClick = (sessionId: string) => {
+    // Update the URL with session ID parameter
+    navigate(`/?sessionId=${sessionId}`);
+    // Set the current session in the store
+    setCurrentSession(sessionId);
   };
 
   return (
@@ -36,7 +45,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
           <div
             key={session.id}
             className={`session-item ${currentSessionId === session.id ? 'active' : ''}`}
-            onClick={() => setCurrentSession(session.id)}
+            onClick={() => handleSessionClick(session.id)}
           >
             <div className="flex-1 truncate">
               <div className="font-medium text-sm">{session.title || 'New Chat'}</div>

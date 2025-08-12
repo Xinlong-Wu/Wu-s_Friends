@@ -20,8 +20,13 @@ const LoginPage: React.FC = () => {
       // Store token in localStorage or secure storage
       localStorage.setItem('authToken', token);
       navigate('/');
-    } catch (err) {
-      setError('Invalid email or password');
+    } catch (err: any) {
+      // Check if it's a rate limiting error (429 status)
+      if (err.response && err.response.status === 429) {
+        setError('Too many login attempts. Your IP is temporarily blocked.');
+      } else {
+        setError('Invalid email or password');
+      }
       console.error('Login error:', err);
     }
   };
@@ -35,8 +40,13 @@ const LoginPage: React.FC = () => {
       // Store token in localStorage or secure storage
       localStorage.setItem('authToken', token);
       navigate('/');
-    } catch (err) {
-      setError('Registration failed');
+    } catch (err: any) {
+      // Check if it's a rate limiting error (429 status)
+      if (err.response && err.response.status === 429) {
+        setError('Too many registration attempts. Your IP is temporarily blocked.');
+      } else {
+        setError('Registration failed');
+      }
       console.error('Registration error:', err);
     }
   };

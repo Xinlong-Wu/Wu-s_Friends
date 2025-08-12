@@ -6,6 +6,7 @@ import ChatSidebar from '../components/ChatSidebar';
 import ChatHeader from '../components/ChatHeader';
 import MessageList from '../components/MessageList';
 import MessageInput from '../components/MessageInput';
+import { useSearchParams } from 'react-router-dom';
 
 const ChatPage: React.FC = () => {
   const {
@@ -18,10 +19,23 @@ const ChatPage: React.FC = () => {
     addSession,
     setIsStreaming,
   } = useChatStore();
+  const [searchParams] = useSearchParams();
 
   const [inputValue, setInputValue] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check for sessionId in URL params and set current session if needed
+  useEffect(() => {
+    const sessionId = searchParams.get('sessionId');
+    if (sessionId && sessions.length > 0 && !currentSessionId) {
+      // Check if the session exists in our sessions list
+      const sessionExists = sessions.some(session => session.id === sessionId);
+      if (sessionExists) {
+        setCurrentSession(sessionId);
+      }
+    }
+  }, [searchParams, sessions, currentSessionId, setCurrentSession]);
 
   // Create a new session on mount if none exists
   useEffect(() => {

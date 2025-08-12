@@ -8,7 +8,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ onClearContext }) => {
   return (
     <div className="border-b border-gray-200 p-4 flex items-center justify-between">
       <div className="flex items-center">
-        <h1 className="text-xl font-bold">AI Chat</h1>
+        <h1 className="text-xl font-bold">小乌和他的朋友们</h1>
       </div>
       
       <div className="flex items-center space-x-2">

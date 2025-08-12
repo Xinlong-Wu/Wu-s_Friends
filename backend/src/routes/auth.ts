@@ -1,16 +1,21 @@
 import express from 'express';
 import { loginUser, registerUser, getCurrentUser, logoutUser } from '../controllers/authController';
+import { loginRateLimiter, recordFailedLogin, recordSuccessfulLogin } from '../middleware/loginRateLimiter';
 
 const router = express.Router();
 
 // User login
-router.post('/login', (req, res) => {
+router.post('/login', loginRateLimiter, (req, res) => {
   try {
     const { email, password } = req.body;
     const result = loginUser(email, password);
     if (result) {
+      // Record successful login
+      recordSuccessfulLogin(req);
       res.json(result);
     } else {
+      // Record failed login attempt
+      recordFailedLogin(req);
       res.status(401).json({ error: 'Invalid credentials' });
     }
   } catch (error) {
