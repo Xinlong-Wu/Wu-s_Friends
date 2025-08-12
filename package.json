@@ -9,11 +9,6 @@
     "frontend",
     "backend"
   ],
-  "scripts": {
-    "dev": "concurrently \"yarn workspace frontend dev\" \"yarn workspace backend dev\"",
-    "build": "yarn workspaces foreach -v run build",
-    "start": "concurrently \"yarn workspace frontend start\" \"yarn workspace backend start\""
-  },
   "devDependencies": {
     "concurrently": "^8.2.0"
   },
