@@ -9,10 +9,12 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
-  const { sessions, currentSessionId, setCurrentSession, removeSession } = useChatStore();
+  const { sessions, currentSessionId, setCurrentSession, removeSession, updateSessionTitle } = useChatStore();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   useEffect(() => {
     // Get current user info when component mounts
@@ -63,6 +65,60 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
     return userName.charAt(0).toUpperCase();
   };
 
+  // Sort sessions by updatedAt time (newest first)
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const dateA = new Date(a.updatedAt);
+    const dateB = new Date(b.updatedAt);
+    return dateB.getTime() - dateA.getTime(); // Newest first
+  });
+
+  // Select the most recently updated session as default
+  useEffect(() => {
+    // Only set default session if we don't already have one and there are sessions
+    if (!currentSessionId && sessions.length > 0) {
+      // Get the most recently updated session
+      const sorted = [...sessions].sort((a, b) => {
+        const dateA = new Date(a.updatedAt);
+        const dateB = new Date(b.updatedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      if (sorted.length > 0) {
+        setCurrentSession(sorted[0].id);
+      }
+    }
+  }, [sessions, currentSessionId, setCurrentSession]);
+
+  // Start editing a session title
+  const startEditing = (sessionId: string, title: string) => {
+    setEditingSessionId(sessionId);
+    setEditTitle(title);
+  };
+
+  // Save the edited session title
+  const saveEdit = async (sessionId: string) => {
+    if (!editTitle.trim()) return;
+    
+    try {
+      // Update the session title on the backend
+      await chatAPI.updateSessionTitle(sessionId, editTitle);
+      // Update the session title in the store
+      updateSessionTitle(sessionId, editTitle);
+    } catch (error) {
+      console.error('Failed to update session title:', error);
+    }
+    finally {
+      setEditingSessionId(null);
+      setEditTitle('');
+    }
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingSessionId(null);
+    setEditTitle('');
+  };
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-4 border-b border-gray-200">
@@ -78,26 +134,70 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
       </div>
       
       <div className="flex-1 overflow-y-auto">
-        {sessions.map((session) => (
+        {sortedSessions.map((session) => (
           <div
             key={session.id}
             className={`session-item ${currentSessionId === session.id ? 'active' : ''}`}
             onClick={() => handleSessionClick(session.id)}
           >
             <div className="flex-1 truncate">
-              <div className="font-medium text-sm">{session.title || 'New Chat'}</div>
+              {editingSessionId === session.id ? (
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => saveEdit(session.id)}
+                    className="flex-1 text-xs border rounded px-2 py-0.5"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => saveEdit(session.id)}
+                    className="text-xs bg-green-500 text-white p-1 rounded hover:bg-green-600"
+                    title="Save"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="text-xs bg-gray-500 text-white p-1 rounded hover:bg-gray-600"
+                    title="Cancel"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  className="font-medium text-sm cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(session.id, session.title || 'New Chat');
+                  }}
+                >
+                  {session.title || 'New Chat'}
+                </div>
+              )}
               <div className="text-xs text-gray-500">
                 {new Date(session.updatedAt).toLocaleDateString()}
               </div>
             </div>
-            <button
-              onClick={(e) => handleDeleteSession(e, session.id)}
-              className="icon-button text-gray-500 hover:text-red-500"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </button>
+            {editingSessionId != session.id &&
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteSession(e, session.id);
+                }}
+                className="icon-button text-gray-500 hover:text-red-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            }
           </div>
         ))}
       </div>

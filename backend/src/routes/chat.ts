@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages } from '../controllers/chatController';
+import { sendMessageToAI, streamAIResponse, createSession, getSessions, deleteSession, clearSessionMessages, updateSessionTitle } from '../controllers/chatController';
 
 const router = express.Router();
 
@@ -92,6 +92,29 @@ router.delete('/:sessionId/messages', (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear messages' });
   }
+});
+
+// Update session title
+router.put('/sessions/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
+    const success = updateSessionTitle(id, title);
+    if (success) {
+      res.status(200).json({ message: 'Session title updated successfully' });
+    } else {
+      res.status(404).json({ error: 'Session not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update session title' });
+  }
+
+  return;
 });
 
 export default router;

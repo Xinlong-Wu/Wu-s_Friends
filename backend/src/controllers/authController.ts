@@ -12,6 +12,13 @@ let users: any[] = [
 // Current user session (in a real app, you would use JWT or sessions)
 let currentUser: any = null;
 
+// Import JWT library
+import jwt from 'jsonwebtoken';
+
+// Load environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
 // User login
 export const loginUser = (email: string, password: string) => {
   const user = users.find(u => u.email === email && u.password === password);
@@ -21,9 +28,15 @@ export const loginUser = (email: string, password: string) => {
     const { password, ...userWithoutPassword } = user;
     currentUser = userWithoutPassword;
     
-    // In a real app, you would generate a JWT token
+    // Generate a real JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
     return {
-      token: 'mock-jwt-token',
+      token,
       user: userWithoutPassword
     };
   }
@@ -53,9 +66,15 @@ export const registerUser = (email: string, password: string, name: string) => {
   const { password: _, ...userWithoutPassword } = newUser;
   currentUser = userWithoutPassword;
   
-  // In a real app, you would generate a JWT token
+  // Generate a real JWT token
+  const token = jwt.sign(
+    { userId: newUser.id, email: newUser.email },
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '24h' }
+  );
+  
   return {
-    token: 'mock-jwt-token',
+    token,
     user: userWithoutPassword
   };
 };

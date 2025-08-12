@@ -25,6 +25,16 @@ const ChatPage: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const createNewSession = async () => {
+    try {
+      const session = await chatAPI.createSession();
+      addSession(session);
+      setCurrentSession(session.id);
+    } catch (error) {
+      console.error('Failed to create session:', error);
+    }
+  };
+
   // Check for sessionId in URL params and set current session if needed
   useEffect(() => {
     const sessionId = searchParams.get('sessionId');
@@ -33,6 +43,9 @@ const ChatPage: React.FC = () => {
       const sessionExists = sessions.some(session => session.id === sessionId);
       if (sessionExists) {
         setCurrentSession(sessionId);
+      } else {
+        // Session doesn't exist, create new one
+        createNewSession();
       }
     }
   }, [searchParams, sessions, currentSessionId, setCurrentSession]);
@@ -51,16 +64,6 @@ const ChatPage: React.FC = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const createNewSession = async () => {
-    try {
-      const session = await chatAPI.createSession();
-      addSession(session);
-      setCurrentSession(session.id);
-    } catch (error) {
-      console.error('Failed to create session:', error);
-    }
   };
 
   const handleSendMessage = async () => {

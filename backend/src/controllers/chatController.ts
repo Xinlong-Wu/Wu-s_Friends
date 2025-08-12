@@ -56,6 +56,17 @@ export const clearSessionMessages = (id: string) => {
   return true;
 };
 
+// Update session title
+export const updateSessionTitle = (id: string, title: string) => {
+  const session = sessions.find(s => s.id === id);
+  if (!session) return false;
+  
+  session.title = title;
+  session.updatedAt = new Date();
+  
+  return true;
+};
+
 // Send a message to AI (non-blocking)
 export const sendMessageToAI = async (sessionId: string, message: any) => {
   // Add user message to storage

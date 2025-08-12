@@ -10,10 +10,10 @@ const api = axios.create({
 // Add a request interceptor to include auth token if needed
 api.interceptors.request.use(
   (config) => {
-    // const token = localStorage.getItem('authToken');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -135,6 +135,12 @@ export const chatAPI = {
   // Clear session messages
   clearSession: async (sessionId: string) => {
     const response = await api.delete(`/chat/${sessionId}/messages`);
+    return response.data;
+  },
+  
+  // Update session title
+  updateSessionTitle: async (sessionId: string, title: string) => {
+    const response = await api.put(`/chat/sessions/${sessionId}`, { title });
     return response.data;
   },
 };
