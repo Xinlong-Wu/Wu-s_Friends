@@ -4,34 +4,39 @@ import { isAuthenticated } from '../utils/authUtils';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  loadingFallback?: React.ReactNode; // 可传入自定义加载UI
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isAuthenticatedResult, setIsAuthenticatedResult] = useState(false);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, loadingFallback }) => {
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
 
   useEffect(() => {
-    const checkAuth = async () => {
+    let isMounted = true;
+
+    (async () => {
       try {
         const authResult = await isAuthenticated();
-        setIsAuthenticatedResult(authResult);
+        if (isMounted) {
+          setAuthState(authResult ? 'authenticated' : 'unauthenticated');
+        }
       } catch (error) {
         console.error('Authentication check failed:', error);
-        setIsAuthenticatedResult(false);
-      } finally {
-        setIsCheckingAuth(false);
+        if (isMounted) setAuthState('unauthenticated');
       }
-    };
+    })();
 
-    checkAuth();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  if (isCheckingAuth) {
-    // You can return a loading spinner here if desired
-    return <div>Loading...</div>;
+  if (authState === 'loading') {
+    return <>{loadingFallback || <div>Loading...</div>}</>;
   }
 
-  return isAuthenticatedResult ? <>{children}</> : <Navigate to="/login" replace />;
+  return authState === 'authenticated'
+    ? <>{children}</>
+    : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;

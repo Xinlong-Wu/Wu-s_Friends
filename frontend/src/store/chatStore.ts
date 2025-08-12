@@ -43,7 +43,7 @@ const useChatStore = create<ChatState & ChatActions>((set) => ({
   
   addSession: (session) =>
     set((state) => ({
-      sessions: [...state.sessions, session],
+      sessions: Array.from(new Set([...state.sessions, session])),
     })),
   
   removeSession: (sessionId) =>

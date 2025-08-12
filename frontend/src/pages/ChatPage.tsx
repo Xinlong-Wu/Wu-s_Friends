@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useChatStore from '../store/chatStore';
 import { chatAPI, fileAPI } from '../services/api';
-import { Message, FileInfo } from '../types';
+import { Message, FileInfo, Session } from '../types';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatHeader from '../components/ChatHeader';
 import MessageList from '../components/MessageList';
@@ -24,6 +24,7 @@ const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const didFetchRef = useRef(false);
 
   const createNewSession = async () => {
     try {
@@ -50,12 +51,30 @@ const ChatPage: React.FC = () => {
     }
   }, [searchParams, sessions, currentSessionId, setCurrentSession]);
 
-  // Create a new session on mount if none exists
+  // Load all sessions from backend on mount
   useEffect(() => {
-    if (sessions.length === 0 && !currentSessionId) {
-      createNewSession();
-    }
-  }, [sessions, currentSessionId]);
+    const loadOrCreateSessions = async () => {
+      if (sessions.length === 0) {
+        try {
+          const sessionList = await chatAPI.getSessions();
+          if (sessionList.length > 0) {
+            sessionList.forEach(session => addSession(session));
+          } else if (!currentSessionId) {
+            createNewSession();
+          }
+        } catch (error) {
+          console.error('Failed to load sessions:', error);
+          if (!currentSessionId) {
+            createNewSession();
+          }
+        }
+      }
+    };
+
+    if (didFetchRef.current) return;
+    didFetchRef.current = true
+    loadOrCreateSessions();
+  }, []);
 
   // Scroll to bottom of messages
   useEffect(() => {
