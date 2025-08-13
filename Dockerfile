@@ -5,6 +5,7 @@ FROM node:23.11.0-alpine AS builder
 # 安装 yarn 2+
 RUN npm config set registry https://registry.npmmirror.com
 RUN corepack enable
+RUN yarn config set npmRegistryServer https://registry.npmmirror.com
 
 # 设置工作目录
 WORKDIR /app
