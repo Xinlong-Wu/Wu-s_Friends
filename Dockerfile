@@ -5,7 +5,6 @@ FROM node:23.11.0-alpine AS builder
 # 安装 yarn 2+
 RUN npm config set registry https://registry.npmmirror.com
 RUN corepack enable
-RUN yarn config set npmRegistryServer https://registry.npmmirror.com
 
 # 设置工作目录
 WORKDIR /app
@@ -21,6 +20,8 @@ COPY frontend/package.json ./frontend/package.json
 COPY backend/package.json ./backend/package.json
 
 # 安装所有工作区依赖
+RUN yarn config set npmRegistryServer https://registry.npmmirror.com
+RUN yarn config set enableTelemetry 0
 RUN yarn workspaces foreach -A install --immutable
 
 # 复制源代码
