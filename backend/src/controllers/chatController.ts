@@ -17,7 +17,7 @@ sseEventEmitter.setMaxListeners(20);
 export const createSession = () => {
   const now = new Date();
   const session = {
-    id: uuidv4(),
+    id: "temp_" + uuidv4(),
     title: 'New Chat',
     createdAt: now,
     updatedAt: now
@@ -83,8 +83,9 @@ export const updateSessionTitle = (id: string, title: string) => {
   return true;
 };
 
-// Send a message to AI (non-blocking)
+// Send a message to AI
 export const sendMessageToAI = async (sessionId: string, message: any) => {
+  const isTempSession = sessionId.startsWith('temp_');
   // Add user message to storage
   const userMessage = {
     id: uuidv4(),
@@ -95,7 +96,9 @@ export const sendMessageToAI = async (sessionId: string, message: any) => {
     files: message.files || []
   };
   
-  messages.push(userMessage);
+  if (!isTempSession) {
+    messages.push(userMessage);
+  }
   
   // Update session timestamp
   const session = sessions.find(s => s.id === sessionId);
@@ -105,31 +108,49 @@ export const sendMessageToAI = async (sessionId: string, message: any) => {
   }
   session.updatedAt = new Date();
   
-  // Get conversation history for this session
-  const sessionMessages = messages
-    .filter(m => m.sessionId === sessionId)
-    .map(m => ({
-      role: m.role,
-      content: m.content
-    }));
-  
   // Send to AI service with streaming
   try {
-    await sendMessageToAliyunAI(sessionMessages, (chunk) => {
-      // 按 \n 解析，遇到data:开头的行，将全部后续内容作为data
+    var firstPart = true;
+    const decoder = new TextDecoder('utf-8');
+    let textBuffer = ''
+    await sendMessageToAliyunAI(userMessage, (chunk) => {
+      textBuffer += decoder.decode(chunk, { stream: true });
+      if (!textBuffer.endsWith('\n\n')) {
+        return;
+      }
+
+      let lines = textBuffer.split('\n', 4);
       let data = '';
-      const lines = chunk.split('\n');
       for (const line of lines) {
         if (line.startsWith('data:')) {
-        data = line.slice(5).trim();
+          data = line.slice(5);
+        }
+        else if (data) {
+          data += line
         }
       }
 
-      let content = JSON.parse(data);
+      // console.log(buffer ? buffer : data);
+      let content:any = {};
+      try {
+        content = JSON.parse(data);
+        textBuffer = '';
+        decoder.decode();
+      } catch (e) {
+        return;
+      }
+      
+      if (firstPart && isTempSession) {
+        // console.log(content);
+        userMessage.sessionId = content.output.session_id;
+        messages.push(userMessage);
+        session.id = content.output.session_id; // Update session ID
+        firstPart = false;
+      }
       if (content.output.finish_reason === 'stop') {
         const aiMessage = {
             id: content.request_id,
-            sessionId,
+            sessionId: session.id,
             content: content.output.text,
             role: 'assistant',
             timestamp: new Date(),
@@ -140,7 +161,7 @@ export const sendMessageToAI = async (sessionId: string, message: any) => {
 
       // Emit chunk for SSE streaming
       sseEventEmitter.emit(`stream-${sessionId}`, data);
-    }, sessionId);
+    }, isTempSession ? "" : sessionId);
   } catch (error) {
     console.error('Error in AI processing:', error);
     // Emit error event

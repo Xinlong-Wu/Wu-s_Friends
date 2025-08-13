@@ -13,6 +13,7 @@ interface JwtPayload {
  * Middleware to authenticate requests using JWT
  */
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+
   // Get the token from the Authorization header
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -23,9 +24,11 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 
   if (!token) {
-    return res.status(401).json({ 
-      error: 'Access token required' 
-    });
+    next();
+    return
+    // return res.status(401).json({ 
+    //   error: 'Access token required' 
+    // });
   }
 
   try {

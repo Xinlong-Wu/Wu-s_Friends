@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useChatStore from '../store/chatStore';
 import { chatAPI, fileAPI } from '../services/api';
-import { Message, FileInfo } from '../types';
+import { Message, FileInfo, Session } from '../types';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatHeader from '../components/ChatHeader';
 import MessageList from '../components/MessageList';
@@ -13,14 +13,16 @@ const ChatPage: React.FC = () => {
     sessions,
     currentSessionId,
     isStreaming,
+    messages,
     addMessage,
     setCurrentSession,
     addSession,
     setIsStreaming,
     setMessages,
     getSessionMessages,
+    replaceSessionID,
   } = useChatStore();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [inputValue, setInputValue] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -38,21 +40,6 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  // Check for sessionId in URL params and set current session if needed
-  useEffect(() => {
-    const sessionId = searchParams.get('sessionId');
-    if (sessionId && sessions.length > 0 && !currentSessionId) {
-      // Check if the session exists in our sessions list
-      const sessionExists = sessions.some(session => session.id === sessionId);
-      if (sessionExists) {
-        setCurrentSession(sessionId);
-      } else {
-        // Session doesn't exist, create new one
-        createNewSession();
-      }
-    }
-  }, [searchParams, sessions, currentSessionId, setCurrentSession]);
-
   // Load all sessions from backend on mount
   useEffect(() => {
     const loadOrCreateSessions = async () => {
@@ -60,8 +47,23 @@ const ChatPage: React.FC = () => {
         try {
           const sessionList = await chatAPI.getSessions();
           if (sessionList.length > 0) {
-            sessionList.forEach(session => addSession(session));
-          } else if (!currentSessionId) {
+            let lastSession: Session = sessionList[0];
+            sessionList.forEach(session => {
+              addSession(session)
+              if (new Date(session.updatedAt) > new Date(lastSession.updatedAt)) {
+                lastSession = session;
+              }
+            });
+
+            let sessionId = searchParams.get('sessionId');
+            const sessionExists = sessions.some(session => session.id === sessionId);
+            if (sessionExists && sessionId) { 
+              setCurrentSession(sessionId);
+            }
+            else {
+              setCurrentSession(lastSession.id);
+            }
+          } else {
             createNewSession();
           }
         } catch (error) {
@@ -81,7 +83,7 @@ const ChatPage: React.FC = () => {
   // Load messages for current session when it changes
   useEffect(() => {
     const loadSessionMessages = async () => {
-      if (!currentSessionId || isLoadingSession) return;
+      if (!currentSessionId || isLoadingSession || isStreaming) return;
       
       setIsLoadingSession(true);
       try {
@@ -96,12 +98,19 @@ const ChatPage: React.FC = () => {
     };
 
     loadSessionMessages();
+  }, [currentSessionId, isStreaming]);
+
+  // Update URL when currentSessionId changes
+  useEffect(() => {
+    if (currentSessionId) {
+      setSearchParams({ sessionId: currentSessionId });
+    }
   }, [currentSessionId]);
 
   // Scroll to bottom of messages
   useEffect(() => {
     scrollToBottom();
-  }, [currentSessionId]); // 当切换会话时也滚动到底部
+  }, [messages, currentSessionId]); // 当切换会话时也滚动
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -111,6 +120,8 @@ const ChatPage: React.FC = () => {
     if ((!inputValue.trim() && selectedFiles.length === 0) || !currentSessionId || isStreaming) {
       return;
     }
+
+    const isTempSession = currentSessionId.startsWith('temp_');
 
     // Upload files first if any
     let uploadedFileInfos: FileInfo[] = [];
@@ -163,6 +174,8 @@ const ChatPage: React.FC = () => {
       let eventSource: EventSource | null = null;
       let accumulatedContent = '';
 
+      let isFiestPart = true;
+
       const handleStreamMessage = (data: any) => {
         if (data.error) {
           // Handle error from stream
@@ -174,17 +187,22 @@ const ChatPage: React.FC = () => {
           setIsStreaming(false);
           return;
         }
+        if (data.end) {
+          setIsStreaming(false);
+        }
 
         let output = data.output || {};
+
+        if (isTempSession && isFiestPart) {
+          isFiestPart = false;
+          replaceSessionID(currentSessionId, output.session_id);
+          setCurrentSession(output.sessionId);
+        }
+
         if (output.text) {
           // Append new text to accumulated content
           accumulatedContent = output.text;
           useChatStore.getState().updateMessage(aiMessageId, accumulatedContent);
-        }
-        
-        if (data.end) {
-          setIsStreaming(false);
-          return;
         }
       };
 

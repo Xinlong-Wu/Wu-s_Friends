@@ -30,12 +30,45 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateSession }) => {
     fetchCurrentUser();
   }, []);
 
-  const handleDeleteSession = (e: React.MouseEvent, sessionId: string) => {
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    chatAPI.deleteSession(sessionId)
-      .then(() => {
-        removeSession(sessionId);
-      })
+    
+    // Check if we're deleting the current session
+    const isCurrentSession = currentSessionId === sessionId;
+    let nextSessionId: string | null = null;
+    
+    // If we're deleting the current session, find the next most recent session
+    if (isCurrentSession) {
+      const otherSessions = sessions.filter(s => s.id !== sessionId);
+      if (otherSessions.length > 0) {
+        // Find the most recently updated session
+        const mostRecentSession = otherSessions.reduce((mostRecent, session) => {
+          return new Date(session.updatedAt) > new Date(mostRecent.updatedAt) ? session : mostRecent;
+        }, otherSessions[0]);
+        nextSessionId = mostRecentSession.id;
+      }
+    }
+    
+    try {
+      // Delete session from backend
+      await chatAPI.deleteSession(sessionId);
+      
+      // Remove session from store
+      removeSession(sessionId);
+      
+      // If we deleted the current session, switch to the next session or create a new one
+      if (isCurrentSession) {
+        if (nextSessionId) {
+          // Switch to the next most recent session
+          handleSessionClick(nextSessionId);
+        } else {
+          // No other sessions, create a new one
+          onCreateSession();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
   };
 
   const handleSessionClick = (sessionId: string) => {

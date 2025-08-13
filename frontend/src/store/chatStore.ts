@@ -13,6 +13,7 @@ interface ChatActions {
   setIsConnected: (isConnected: boolean) => void;
   setMessages: (sessionId: string, messages: Message[]) => void;
   getSessionMessages: (sessionId: string) => Message[];
+  replaceSessionID: (oldSessionId: string, newSessionId: string) => void;
 }
 
 // 保持原始的简单实现，但优化 getSessionMessages 方法
@@ -73,6 +74,17 @@ const useChatStore = create<ChatState & ChatActions>((set, get) => ({
         currentSessionId: newCurrentSessionId,
       };
     }),
+  
+  // Replace a session (used when converting placeholder to real session)
+  replaceSessionID: (oldSessionId, newSessionid) =>
+    set((state) => ({
+      sessions: state.sessions.map((session) =>
+        session.id === oldSessionId ? { ...session, id: newSessionid } : session
+      ),
+      messages: state.messages.map((message) =>
+        message.sessionId === oldSessionId ? { ...message, sessionId: newSessionid } : message
+      ),
+    })),
   
   // 更新会话标题
   updateSessionTitle: (sessionId, title) =>

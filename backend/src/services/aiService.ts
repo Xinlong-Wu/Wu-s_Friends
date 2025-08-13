@@ -5,25 +5,20 @@ const ALIYUN_AI_API_URL = process.env.ALIYUN_AI_API_URL || 'https://dashscope.al
 const ALIYUN_API_KEY = process.env.ALIYUN_API_KEY || 'your-api-key-here';
 
 // Send a message to Aliyun AI and get response
-export const sendMessageToAliyunAI = async (messages: any[], onChunk: (chunk: string) => void, sessionId: string) => {
+export const sendMessageToAliyunAI = async (messages: any, onChunk: (chunk: Buffer) => void, sessionId: string) => {
   try {
-    // Format messages for Aliyun API
-    const formattedMessages = messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
-
     // For streaming response, you would use Server-Sent Events or WebSockets
     // Here's a simplified version that waits for the full response
-    
     const response = await axios.post(
       ALIYUN_AI_API_URL,
       {
         input: {
-          prompt: formattedMessages,
+          prompt: messages,
+          session_id: !sessionId ? undefined : sessionId, // Use session ID if available
         },
         parameters: {
-          incremental_output: false // Set to true for streaming
+          incremental_output: false,
+          has_thoughts: true
         }
       },
       {
@@ -40,8 +35,7 @@ export const sendMessageToAliyunAI = async (messages: any[], onChunk: (chunk: st
     // The exact structure depends on the Aliyun API response format
     return new Promise((resolve, reject) => {
       response.data.on('data', (chunk: Buffer) => {
-        const text = chunk.toString();
-        onChunk(text);
+        onChunk(chunk);
       });
 
       response.data.on('end', () => {
