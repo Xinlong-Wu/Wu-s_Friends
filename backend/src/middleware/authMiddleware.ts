@@ -24,11 +24,11 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 
   if (!token) {
-    next();
-    return
-    // return res.status(401).json({ 
-    //   error: 'Access token required' 
-    // });
+    // next();
+    // return
+    return res.status(401).json({ 
+      error: 'Access token required' 
+    });
   }
 
   try {
